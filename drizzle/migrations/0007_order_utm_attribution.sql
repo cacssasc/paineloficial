@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS utm_parameters jsonb NOT NULL DEFAULT '{}'::jsonb;
+COMMENT ON COLUMN public.orders.utm_parameters IS 'First-party campaign UTM parameters captured at order creation; no provider reporting or customer matching.';

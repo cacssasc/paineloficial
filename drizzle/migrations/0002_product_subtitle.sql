@@ -1,0 +1,1 @@
+alter table public.products add column subtitle text not null default '';
