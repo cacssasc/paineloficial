@@ -77,12 +77,21 @@ export type Database = {
           created_at: string
           order_id: string
           stripe_payment_intent_id: string | null
+          iluminypay_transaction_id: string | null
+          pix_qr_code: string | null
+          pix_expires_at: string | null
         }
         Insert: {
           access_token: string
           created_at?: string
           order_id: string
           stripe_payment_intent_id?: string | null
+          iluminypay_transaction_id?: string | null
+          pix_qr_code?: string | null
+          pix_expires_at?: string | null
+          iluminypay_transaction_id?: string | null
+          pix_qr_code?: string | null
+          pix_expires_at?: string | null
         }
         Update: {
           access_token?: string
