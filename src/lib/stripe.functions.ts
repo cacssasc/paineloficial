@@ -1,6 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { paymentAccessSchema } from "@/lib/stripe-payment";
 
+/** Public Stripe key is retained for the legacy card component; never expose the secret key. */
+export const getStripePublicConfig = createServerFn({ method: "GET" }).handler(() => {
+  const publishableKey = process.env["STRIPE_PUBLISHABLE_KEY"];
+  if (!publishableKey || !/^pk_(test|live)_/.test(publishableKey)) {
+    return { publishableKey: null };
+  }
+  return { publishableKey };
+});
+
 export const getOrderPayment = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; token: string }) => paymentAccessSchema.parse(input))
   .handler(async ({ data }) => {
