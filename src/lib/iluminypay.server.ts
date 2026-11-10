@@ -64,7 +64,7 @@ export async function createIluminypayPix(input: {
       customer: {
         name: input.customerName,
         email: input.email,
-        document: { type: "cpf", number: input.cpf.replace(/\\D/g, "") },
+        document: { type: "cpf", number: input.cpf.replace(/\D/g, "") },
         phone: input.phone.replace(/\\D/g, ""),
       },
       items: [{
