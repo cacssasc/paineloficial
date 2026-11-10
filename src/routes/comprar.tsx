@@ -3,12 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft, MapPin, ChevronRight, Plus, Zap, Briefcase, Home, CreditCard } from "lucide-react";
+import { ArrowLeft, MapPin, ChevronRight, Plus, Zap, Briefcase, Home } from "lucide-react";
 import { createOrder } from "@/lib/store.functions";
 import { useCart, clearCart } from "@/lib/cart";
 import { Price } from "@/components/store/Price";
 import { type PaymentMethod } from "@/lib/payment";
-import { SecureCardFields, type ConfirmCard } from "@/components/store/SecureCardFields";
 import { getOrderPayment } from "@/lib/stripe.functions";
 import { Button } from "@/components/ui/button";
 import pixAsset from "@/assets/pix.png.asset.json";
@@ -93,14 +92,10 @@ function Checkout() {
   const router = useRouter();
   const submit = useServerFn(createOrder);
   const readPayment = useServerFn(getOrderPayment);
-  const confirmCard = useRef<ConfirmCard | null>(null);
-  const [cardReady, setCardReady] = useState(false);
-  const onConfirmReady = useCallback((confirm: ConfirmCard | null) => { confirmCard.current = confirm; setCardReady(Boolean(confirm)); }, []);
   const checkoutAttempt = useRef<{ id: string; token: string; method: PaymentMethod } | null>(null);
   const qty = items.reduce((s, i) => s + i.qty, 0);
   const total = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const old = items.reduce((s, i) => s + Math.max(i.oldPrice ?? 0, i.unitPrice) * i.qty, 0);
-  const installments = 10;
 
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -109,7 +104,7 @@ function Checkout() {
   const [noNumber, setNoNumber] = useState(false);
   const [kind, setKind] = useState<"trabalho" | "casa" | null>(null);
   const [busy, setBusy] = useState(false);
-  const [method, setMethod] = useState<PaymentMethod>("pix");
+  const method: PaymentMethod = "pix";
 
   useEffect(() => { const t = setTimeout(() => setLoading(false), 1800); return () => clearTimeout(t); }, []);
 
@@ -140,7 +135,7 @@ function Checkout() {
 
   async function pay() {
     if (!address) { setEditing(true); return; }
-    if (busy || (method === "cartao" && !confirmCard.current)) return;
+    if (busy) return;
     setBusy(true);
     try {
       const complement = [address.complement, kind === "trabalho" ? "Trabalho" : kind === "casa" ? "Residencial" : "", address.info].filter(Boolean).join(" · ").slice(0, 100);
@@ -158,10 +153,6 @@ function Checkout() {
         utm_parameters: captureVisitUtms(window.location.search),
       } });
       sessionStorage.setItem(`order-access:${res.id}`, res.token);
-      if (method === "cartao") {
-        if (!res.clientSecret || !confirmCard.current) throw new Error("Não foi possível abrir o pagamento.");
-        await confirmCard.current(res.clientSecret, { name: address.customer_name, email: address.email });
-      }
       await readPayment({ data: { id: res.id, token: res.token } });
       clearCart();
       navigate({ to: method === "pix" ? "/pix/$id" : "/obrigado/$id", params: { id: res.id } });
@@ -308,21 +299,12 @@ function Checkout() {
           <h3 className="mb-3 text-[17px] font-semibold">Meios de pagamento</h3>
           <div className="divide-y divide-ml-muted/20 overflow-hidden rounded-lg border border-ml-muted/20">
             <PayOption
-              on={method === "pix"}
-              onClick={() => setMethod("pix")}
+              on
+              onClick={() => undefined}
               icon={<img src={pixAsset.url} alt="" className="h-6 w-6 object-contain" />}
               title="Pix"
               note="Aprovação imediata"
             />
-            <PayOption
-              on={method === "cartao"}
-              onClick={() => setMethod("cartao")}
-              icon={<CreditCard className="h-5 w-5 text-ml-blue" />}
-              title="Novo cartão de crédito"
-              note={`Até ${installments} parcelas sem juros`}
-              noteClass="text-ml-green"
-            />
-            {method === "cartao" && <SecureCardFields onConfirmReady={onConfirmReady} />}
           </div>
         </section>
 
@@ -348,7 +330,7 @@ function Checkout() {
         </section>
       </main>
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ml-muted/20 bg-background p-4">
-        <Button disabled={busy || (method === "cartao" && Boolean(address) && !cardReady)} onClick={pay} className="mx-auto flex h-12 w-full max-w-xl rounded-md bg-ml-blue font-semibold text-background hover:bg-ml-blue disabled:opacity-60">
+        <Button disabled={busy} onClick={pay} className="mx-auto flex h-12 w-full max-w-xl rounded-md bg-ml-blue font-semibold text-background hover:bg-ml-blue disabled:opacity-60">
           {busy ? "Finalizando..." : !address ? "Adicionar endereço" : "Pagar e finalizar"}
         </Button>
       </div>
