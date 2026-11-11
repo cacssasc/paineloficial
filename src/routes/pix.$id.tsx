@@ -22,5 +22,6 @@ function PixPage() {
     if (payment?.status === "pago") void navigate({ to: "/obrigado/$id", params: { id }, replace: true });
   }, [id, payment?.status, navigate]);
   if (error && !payment) return <p role="alert" className="p-8 text-center text-ml-muted">{error}</p>;
-  return <PixPayment orderId={id} total={payment?.total} {...(payment?.code ? { code: payment.code } : {})} {...(payment?.expiresAt ? { expiresAt: payment.expiresAt } : {})} />;
+  return <PixPayment orderId={id} total={payment?.total} providerStatus={payment?.providerStatus} {...(payment?.code ? { code: payment.code } : {})} {...(payment?.expiresAt ? { expiresAt: payment.expiresAt } : {})} />;
 }
+
