@@ -76,18 +76,21 @@ export type Database = {
           access_token: string
           created_at: string
           order_id: string
+          pagpix_transaction_id: string | null
           stripe_payment_intent_id: string | null
         }
         Insert: {
           access_token: string
           created_at?: string
           order_id: string
+          pagpix_transaction_id?: string | null
           stripe_payment_intent_id?: string | null
         }
         Update: {
           access_token?: string
           created_at?: string
           order_id?: string
+          pagpix_transaction_id?: string | null
           stripe_payment_intent_id?: string | null
         }
         Relationships: [
@@ -539,3 +542,4 @@ export const Constants = {
     },
   },
 } as const
+
