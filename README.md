@@ -21,9 +21,16 @@ npm i
 npm run dev
 ```
 
+## Pagamentos Pix com PagPix Hub
+
+Cadastre `PAGPIXHUB_API_KEY` como variável secreta no ambiente do servidor (Vercel: **Project → Settings → Environment Variables**) e habilite-a nos ambientes desejados. Gere a chave em `/dashboard/api-keys` no PagPix Hub. Não coloque essa chave no navegador, no repositório ou em mensagens.
+
+Depois de configurar a chave, aplique a migration `drizzle/migrations/0008_pagpix_hub.sql` ao banco Supabase. O checkout cria a cobrança Pix com chave de idempotência; quando o provedor responde que o código está sendo gerado, a página consulta a transação até o código ficar disponível. O pedido só é marcado como pago após a API retornar `status: PAID`. O cartão continua usando Stripe.
+
 ## Built with
 
 - TanStack Start
 - TypeScript
 - React
 - Tailwind CSS
+

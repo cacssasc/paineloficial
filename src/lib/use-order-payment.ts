@@ -16,7 +16,8 @@ export function useOrderPayment(id: string) {
         const result = await readPayment({ data: { id, token } });
         if (!active) return;
         setPayment(result); setError("");
-        if (result.status !== "pago" && result.providerStatus !== "canceled") timer = setTimeout(refresh, 5000);
+        const terminal = ["paid", "expired", "failed", "canceled"].includes(result.providerStatus);
+        if (result.status !== "pago" && !terminal) timer = setTimeout(refresh, 5000);
       } catch {
         if (!active) return;
         setError("Não foi possível consultar o pagamento. Tentando novamente…");
@@ -28,3 +29,4 @@ export function useOrderPayment(id: string) {
   }, [id, readPayment]);
   return { payment, error };
 }
+

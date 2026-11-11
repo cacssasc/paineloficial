@@ -5,7 +5,7 @@ import { brl } from "@/lib/format";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-export function PixPayment({ orderId, total, code, expiresAt }: { orderId: string; total?: number | undefined; code?: string; expiresAt?: number }) {
+export function PixPayment({ orderId, total, code, expiresAt, providerStatus }: { orderId: string; total?: number | undefined; code?: string; expiresAt?: number; providerStatus?: string }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
   const remaining = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / 1000)) : null;
@@ -24,7 +24,7 @@ export function PixPayment({ orderId, total, code, expiresAt }: { orderId: strin
           <p className="px-4 text-base text-ml-muted">Falta só um passo!</p>
           <h1 className="px-5 pb-5 pt-2 text-2xl font-semibold leading-snug">{total != null ? `Pague R$ ${brl(total)} via Pix para garantir sua compra` : "Pague via Pix para garantir sua compra"}</h1>
           <div className="flex min-h-12 flex-wrap items-center justify-center gap-2 rounded-b-md bg-ml-yellow px-3 py-2 text-sm font-semibold" aria-live="polite">
-            {remaining != null ? <>{expired ? "Seu código Pix expirou" : <>Seu código vence em minutos! <span className="rounded-sm bg-background px-2 py-1 tabular-nums">{String(Math.floor(remaining / 60)).padStart(2, "0")}</span>:<span className="rounded-sm bg-background px-2 py-1 tabular-nums">{String(remaining % 60).padStart(2, "0")}</span></>}</> : "Aguardando a geração do código Pix"}
+            {providerStatus === "failed" ? "Não foi possível gerar o código Pix. Entre em contato com a loja." : providerStatus === "expired" || expired ? "Seu código Pix expirou" : remaining != null ? <>Seu código vence em minutos! <span className="rounded-sm bg-background px-2 py-1 tabular-nums">{String(Math.floor(remaining / 60)).padStart(2, "0")}</span>:<span className="rounded-sm bg-background px-2 py-1 tabular-nums">{String(remaining % 60).padStart(2, "0")}</span></> : code ? "Pague usando o código Pix abaixo" : "Aguardando a geração do código Pix"}
           </div>
         </section>
         <section className="mt-4 rounded-md border border-ml-muted/15 bg-background">
@@ -44,3 +44,4 @@ export function PixPayment({ orderId, total, code, expiresAt }: { orderId: strin
     </div>
   );
 }
+

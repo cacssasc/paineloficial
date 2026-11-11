@@ -57,6 +57,14 @@
       "when": 1793215933852,
       "tag": "0007_order_utm_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793217000000,
+      "tag": "0008_pagpix_hub",
+      "breakpoints": true
     }
   ]
 }
+

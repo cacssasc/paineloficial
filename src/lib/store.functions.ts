@@ -76,8 +76,6 @@ const orderSchema = z.object({
 export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((input: z.input<typeof orderSchema>) => orderSchema.parse(input))
   .handler(async ({ data }) => {
-    const stripeKey = process.env["STRIPE_SECRET_KEY"];
-    if (!stripeKey) throw new Error("Pagamentos indisponíveis. Tente novamente mais tarde.");
     const sb = publicClient();
     const ids = [...new Set(data.items.map((i) => i.productId))];
     const vids = data.items.map((i) => i.variantId).filter((v): v is string => !!v);
@@ -106,14 +104,8 @@ export const createOrder = createServerFn({ method: "POST" })
     void items;
     const first = lines[0];
     if (!first || total <= 0) throw new Error("Carrinho inválido.");
-    const { data: existing } = await supabaseAdmin.from("order_payments").select("access_token, stripe_payment_intent_id").eq("order_id", checkoutId).maybeSingle();
+    const { data: existing } = await supabaseAdmin.from("order_payments").select("access_token, stripe_payment_intent_id, pagpix_transaction_id").eq("order_id", checkoutId).maybeSingle();
     if (existing && existing.access_token !== checkoutToken) throw new Error("Pedido inválido.");
-    const { default: Stripe } = await import("stripe");
-    const stripe = new Stripe(stripeKey, { httpClient: Stripe.createFetchHttpClient() });
-    if (existing?.stripe_payment_intent_id) {
-      const intent = await stripe.paymentIntents.retrieve(existing.stripe_payment_intent_id);
-      return { id: checkoutId, token: checkoutToken, clientSecret: intent.client_secret, total: intent.amount / 100 };
-    }
     if (!existing) {
     const { error } = await supabaseAdmin
       .from("orders")
@@ -137,6 +129,30 @@ export const createOrder = createServerFn({ method: "POST" })
     // The stored order, not any browser amount, is the authority on retry too.
     const { data: storedOrder } = await supabaseAdmin.from("orders").select("total, payment_method, customer_name, email, cpf").eq("id", checkoutId).single();
     if (!storedOrder) throw new Error("Pedido não encontrado.");
+    if (storedOrder.payment_method === "pix") {
+      const amountCents = Math.round(Number(storedOrder.total) * 100);
+      if (amountCents < 500 || amountCents > 50_000_000) throw new Error("O valor do pedido está fora dos limites para pagamento Pix.");
+      if (!existing?.pagpix_transaction_id) {
+        const { createPagPixCharge } = await import("@/lib/pagpix-payment.server");
+        const transaction = await createPagPixCharge({
+          amountCents, orderId: checkoutId,
+          customer: { name: storedOrder.customer_name, email: storedOrder.email, cpf: storedOrder.cpf, phone: customer.phone },
+        });
+        if (!transaction.id || transaction.amount_cents !== amountCents) throw new Error("A PagPix Hub retornou uma cobrança inválida.");
+        const { error: paymentError } = await supabaseAdmin.from("order_payments")
+          .update({ pagpix_transaction_id: transaction.id }).eq("order_id", checkoutId).eq("access_token", checkoutToken);
+        if (paymentError) throw new Error("Não foi possível vincular o pagamento Pix ao pedido.");
+      }
+      return { id: checkoutId, token: checkoutToken, total: Number(storedOrder.total) };
+    }
+    const stripeKey = process.env["STRIPE_SECRET_KEY"];
+    if (!stripeKey) throw new Error("Pagamentos indisponíveis. Tente novamente mais tarde.");
+    const { default: Stripe } = await import("stripe");
+    const stripe = new Stripe(stripeKey, { httpClient: Stripe.createFetchHttpClient() });
+    if (existing?.stripe_payment_intent_id) {
+      const intent = await stripe.paymentIntents.retrieve(existing.stripe_payment_intent_id);
+      return { id: checkoutId, token: checkoutToken, clientSecret: intent.client_secret, total: intent.amount / 100 };
+    }
     try {
       const intent = await stripe.paymentIntents.create({
         amount: Math.round(Number(storedOrder.total) * 100), currency: "brl",
@@ -187,3 +203,4 @@ export const getCatalogBySlug = createServerFn({ method: "GET" })
       }));
     return { catalog, products };
   });
+
